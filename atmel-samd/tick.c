@@ -2,8 +2,6 @@
 
 #include "tick.h"
 
-#include "asf/sam0/drivers/tc/tc_interrupt.h"
-
 // Global millisecond tick count
 volatile uint64_t ticks_ms = 0;
 

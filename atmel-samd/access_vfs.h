@@ -30,8 +30,6 @@
 #ifndef __MICROPY_INCLUDED_ATMEL_SAMD_ROM_FS_H__
 #define __MICROPY_INCLUDED_ATMEL_SAMD_ROM_FS_H__
 
-#include "asf/common/services/storage/ctrl_access/ctrl_access.h"
-
 Ctrl_status vfs_test_unit_ready(void);
 Ctrl_status vfs_read_capacity(uint32_t *u32_nb_sector);
 bool        vfs_wr_protect(void);

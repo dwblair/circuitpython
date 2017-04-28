@@ -26,7 +26,6 @@
 
 #include "autoreload.h"
 
-#include "asf/sam0/drivers/tc/tc_interrupt.h"
 #include "lib/utils/interrupt_char.h"
 #include "py/mphal.h"
 

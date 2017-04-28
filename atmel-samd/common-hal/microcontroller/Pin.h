@@ -27,16 +27,6 @@
 #ifndef __MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_MICROCONTROLLER_PIN_H__
 #define __MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_MICROCONTROLLER_PIN_H__
 
-// Don't reorder these includes because they are dependencies of adc_feature.h.
-// They should really be included by adc_feature.h.
-#include "compiler.h"
-#include "asf/sam0/drivers/system/clock/gclk.h"
-#include "asf/sam0/utils/cmsis/samd21/include/component/adc.h"
-#include "asf/sam0/drivers/adc/adc_sam_d_r/adc_feature.h" // for adc_positive_input
-
-#include "asf/sam0/drivers/tc/tc.h"
-#include "asf/sam0/drivers/tcc/tcc.h"
-
 #include "py/obj.h"
 
 typedef struct {

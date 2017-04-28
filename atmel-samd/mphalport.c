@@ -1,18 +1,14 @@
 #include <string.h>
 
 #include "autoreload.h"
-#include "compiler.h"
-#include "asf/common/services/sleepmgr/sleepmgr.h"
-#include "asf/common/services/usb/class/cdc/device/udi_cdc.h"
-#include "asf/common2/services/delay/delay.h"
-#include "asf/sam0/drivers/port/port.h"
-#include "asf/sam0/drivers/sercom/usart/usart.h"
 #include "lib/mp-readline/readline.h"
 #include "lib/utils/interrupt_char.h"
 #include "py/mphal.h"
 #include "py/mpstate.h"
 #include "py/smallint.h"
 #include "shared-bindings/time/__init__.h"
+
+#include "hal/include/hal_atomic.h"
 
 #include "mpconfigboard.h"
 #include "mphalport.h"
@@ -80,15 +76,11 @@ void usb_rx_notify(void) {
         while (udi_cdc_is_rx_ready()) {
             uint8_t c;
 
-            // Introduce a critical section to avoid buffer corruption. We use
-            // cpu_irq_save instead of cpu_irq_disable because we don't know the
-            // current state of IRQs. They may have been turned off already and
-            // we don't want to accidentally turn them back on.
-            flags = cpu_irq_save();
+            atomic_enter_critical(&flags);
             // If our buffer is full, then don't get another character otherwise
             // we'll lose a previous character.
             if (usb_rx_count >= USB_RX_BUF_SIZE) {
-                cpu_irq_restore(flags);
+                atomic_leave_critical(&flags);
                 break;
             }
 
@@ -115,7 +107,7 @@ void usb_rx_notify(void) {
                 // tail.
                 usb_rx_count--;
                 usb_rx_buf_tail = current_tail;
-                cpu_irq_restore(flags);
+                atomic_leave_critical(&flags);
                 mp_keyboard_interrupt();
                 // Don't put the interrupt into the buffer, just continue.
                 continue;
@@ -125,7 +117,7 @@ void usb_rx_notify(void) {
             // the next character was already loaded in the buffer.
             usb_rx_buf[current_tail] = c;
 
-            cpu_irq_restore(flags);
+            atomic_leave_critical(&flags);
         }
     }
 }
@@ -136,14 +128,15 @@ int receive_usb(void) {
     }
 
     // Copy from head.
-    cpu_irq_disable();
-    int data = usb_rx_buf[usb_rx_buf_head];
+    int data;
+    CRITICAL_SECTION_ENTER();
+    data = usb_rx_buf[usb_rx_buf_head];
     usb_rx_buf_head++;
     usb_rx_count--;
     if ((USB_RX_BUF_SIZE) == usb_rx_buf_head) {
       usb_rx_buf_head = 0;
     }
-    cpu_irq_enable();
+    CRITICAL_SECTION_LEAVE();
 
     // Call usb_rx_notify if we just emptied a spot in the buffer.
     if (usb_rx_count == USB_RX_BUF_SIZE - 1) {
@@ -248,16 +241,16 @@ void mp_hal_delay_us(mp_uint_t delay) {
 
 // Interrupt flags that will be saved and restored during disable/Enable
 // interrupt functions below.
-static irqflags_t irq_flags;
+static volatile hal_atomic_t flags;
 
 void mp_hal_disable_all_interrupts(void) {
     // Disable all interrupt sources for timing critical sections.
     // Disable ASF-based interrupts.
-    irq_flags = cpu_irq_save();
+    atomic_enter_critical(&flags);
 }
 
 void mp_hal_enable_all_interrupts(void) {
     // Enable all interrupt sources after timing critical sections.
     // Restore ASF-based interrupts.
-    cpu_irq_restore(irq_flags);
+    atomic_leave_critical(&flags);
 }

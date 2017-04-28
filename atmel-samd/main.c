@@ -15,27 +15,26 @@
 #include "lib/mp-readline/readline.h"
 #include "lib/utils/pyexec.h"
 
-#include "asf/common/services/sleepmgr/sleepmgr.h"
-#include "asf/common/services/usb/udc/udc.h"
-#include "asf/common2/services/delay/delay.h"
-#include "asf/sam0/drivers/nvm/nvm.h"
-#include "asf/sam0/drivers/port/port.h"
-#include "asf/sam0/drivers/sercom/usart/usart.h"
-#include "asf/sam0/drivers/system/system.h"
-#include <board.h>
-
 #include "boards/board.h"
 
-#include "common-hal/analogio/AnalogIn.h"
-#include "common-hal/audioio/AudioOut.h"
-#include "common-hal/audiobusio/PDMIn.h"
-#include "common-hal/pulseio/PulseIn.h"
-#include "common-hal/pulseio/PulseOut.h"
-#include "common-hal/pulseio/PWMOut.h"
-#include "common-hal/usb_hid/__init__.h"
+// ASF 4
+#include "hal/include/hal_delay.h"
+#include "hal/include/hal_gpio.h"
+#include "hal/include/hal_init.h"
+#include "hal/include/hal_usb_device.h"
+#include "hpl/gclk/hpl_gclk_base.h"
+#include "hpl/pm/hpl_pm_base.h"
+
+//#include "common-hal/analogio/AnalogIn.h"
+//#include "common-hal/audioio/AudioOut.h"
+//#include "common-hal/audiobusio/PDMIn.h"
+//#include "common-hal/pulseio/PulseIn.h"
+//#include "common-hal/pulseio/PulseOut.h"
+//#include "common-hal/pulseio/PWMOut.h"
+//#include "common-hal/usb_hid/__init__.h"
 
 #ifdef EXPRESS_BOARD
-#include "common-hal/touchio/TouchIn.h"
+//#include "common-hal/touchio/TouchIn.h"
 #define INTERNAL_CIRCUITPY_CONFIG_START_ADDR (0x00040000 - 0x100)
 #else
 #define INTERNAL_CIRCUITPY_CONFIG_START_ADDR (0x00040000 - 0x010000 - 0x100)
@@ -61,7 +60,7 @@ typedef enum {
 void do_str(const char *src, mp_parse_input_kind_t input_kind) {
     mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, src, strlen(src), 0);
     if (lex == NULL) {
-        printf("MemoryError: lexer could not allocate memory\n");
+        //printf("MemoryError: lexer could not allocate memory\n");
         return;
     }
 
@@ -144,90 +143,90 @@ void reset_mp(void) {
 
 extern volatile bool mp_msc_enabled;
 
-void reset_samd21(void) {
+void reset_samd(void) {
     // Reset all SERCOMs except the one being used by the SPI flash.
-    Sercom *sercom_instances[SERCOM_INST_NUM] = SERCOM_INSTS;
-    for (int i = 0; i < SERCOM_INST_NUM; i++) {
-        #ifdef SPI_FLASH_SERCOM
-            if (sercom_instances[i] == SPI_FLASH_SERCOM) {
-                continue;
-            }
-        #endif
-        #ifdef MICROPY_HW_APA102_SERCOM
-            if (sercom_instances[i] == MICROPY_HW_APA102_SERCOM) {
-                continue;
-            }
-        #endif
-        sercom_instances[i]->SPI.CTRLA.bit.SWRST = 1;
-    }
-
-#ifdef EXPRESS_BOARD
-    audioout_reset();
-    touchin_reset();
-    pdmin_reset();
-    pulsein_reset();
-    pulseout_reset();
-    pwmout_reset();
-#endif
-
-    analogin_reset();
-
-
-    // Wait for the DAC to sync then reset.
-    while (DAC->STATUS.reg & DAC_STATUS_SYNCBUSY) {}
-    DAC->CTRLA.reg |= DAC_CTRLA_SWRST;
-
-    reset_all_pins();
-
-
-    usb_hid_reset();
-
-#ifdef CALIBRATE_CRYSTALLESS
-    // If we are on USB lets double check our fine calibration for the clock and
-    // save the new value if its different enough.
-    if (mp_msc_enabled) {
-        SYSCTRL->DFLLSYNC.bit.READREQ = 1;
-        uint16_t saved_calibration = 0x1ff;
-        if (strcmp((char*) INTERNAL_CIRCUITPY_CONFIG_START_ADDR, "CIRCUITPYTHON1") == 0) {
-            saved_calibration = ((uint16_t *) INTERNAL_CIRCUITPY_CONFIG_START_ADDR)[8];
-        }
-        while (SYSCTRL->PCLKSR.bit.DFLLRDY == 0) {
-            // TODO(tannewt): Run the mass storage stuff if this takes a while.
-        }
-        int16_t current_calibration = SYSCTRL->DFLLVAL.bit.FINE;
-        if (abs(current_calibration - saved_calibration) > 10) {
-            enum status_code error_code;
-            uint8_t page_buffer[NVMCTRL_ROW_SIZE];
-            for (int i = 0; i < NVMCTRL_ROW_PAGES; i++) {
-                do
-                {
-                    error_code = nvm_read_buffer(INTERNAL_CIRCUITPY_CONFIG_START_ADDR + i * NVMCTRL_PAGE_SIZE,
-                                                 page_buffer + i * NVMCTRL_PAGE_SIZE,
-                                                 NVMCTRL_PAGE_SIZE);
-                } while (error_code == STATUS_BUSY);
-            }
-            // If this is the first write, include the header.
-            if (strcmp((char*) page_buffer, "CIRCUITPYTHON1") != 0) {
-                memcpy(page_buffer, "CIRCUITPYTHON1", 15);
-            }
-            // First 16 bytes (0-15) are ID. Little endian!
-            page_buffer[16] = current_calibration & 0xff;
-            page_buffer[17] = current_calibration >> 8;
-            do
-            {
-                error_code = nvm_erase_row(INTERNAL_CIRCUITPY_CONFIG_START_ADDR);
-            } while (error_code == STATUS_BUSY);
-            for (int i = 0; i < NVMCTRL_ROW_PAGES; i++) {
-                do
-                {
-                    error_code = nvm_write_buffer(INTERNAL_CIRCUITPY_CONFIG_START_ADDR + i * NVMCTRL_PAGE_SIZE,
-                                                  page_buffer + i * NVMCTRL_PAGE_SIZE,
-                                                  NVMCTRL_PAGE_SIZE);
-                } while (error_code == STATUS_BUSY);
-            }
-        }
-    }
-#endif
+//     Sercom *sercom_instances[SERCOM_INST_NUM] = SERCOM_INSTS;
+//     for (int i = 0; i < SERCOM_INST_NUM; i++) {
+//         #ifdef SPI_FLASH_SERCOM
+//             if (sercom_instances[i] == SPI_FLASH_SERCOM) {
+//                 continue;
+//             }
+//         #endif
+//         #ifdef MICROPY_HW_APA102_SERCOM
+//             if (sercom_instances[i] == MICROPY_HW_APA102_SERCOM) {
+//                 continue;
+//             }
+//         #endif
+//         sercom_instances[i]->SPI.CTRLA.bit.SWRST = 1;
+//     }
+//
+// #ifdef EXPRESS_BOARD
+//     audioout_reset();
+//     touchin_reset();
+//     pdmin_reset();
+//     pulsein_reset();
+//     pulseout_reset();
+//     pwmout_reset();
+// #endif
+//
+//     analogin_reset();
+//
+//
+//     // Wait for the DAC to sync then reset.
+//     while (DAC->STATUS.reg & DAC_STATUS_SYNCBUSY) {}
+//     DAC->CTRLA.reg |= DAC_CTRLA_SWRST;
+//
+//     reset_all_pins();
+//
+//
+//     usb_hid_reset();
+//
+// #ifdef CALIBRATE_CRYSTALLESS
+//     // If we are on USB lets double check our fine calibration for the clock and
+//     // save the new value if its different enough.
+//     if (mp_msc_enabled) {
+//         SYSCTRL->DFLLSYNC.bit.READREQ = 1;
+//         uint16_t saved_calibration = 0x1ff;
+//         if (strcmp((char*) INTERNAL_CIRCUITPY_CONFIG_START_ADDR, "CIRCUITPYTHON1") == 0) {
+//             saved_calibration = ((uint16_t *) INTERNAL_CIRCUITPY_CONFIG_START_ADDR)[8];
+//         }
+//         while (SYSCTRL->PCLKSR.bit.DFLLRDY == 0) {
+//             // TODO(tannewt): Run the mass storage stuff if this takes a while.
+//         }
+//         int16_t current_calibration = SYSCTRL->DFLLVAL.bit.FINE;
+//         if (abs(current_calibration - saved_calibration) > 10) {
+//             enum status_code error_code;
+//             uint8_t page_buffer[NVMCTRL_ROW_SIZE];
+//             for (int i = 0; i < NVMCTRL_ROW_PAGES; i++) {
+//                 do
+//                 {
+//                     error_code = nvm_read_buffer(INTERNAL_CIRCUITPY_CONFIG_START_ADDR + i * NVMCTRL_PAGE_SIZE,
+//                                                  page_buffer + i * NVMCTRL_PAGE_SIZE,
+//                                                  NVMCTRL_PAGE_SIZE);
+//                 } while (error_code == STATUS_BUSY);
+//             }
+//             // If this is the first write, include the header.
+//             if (strcmp((char*) page_buffer, "CIRCUITPYTHON1") != 0) {
+//                 memcpy(page_buffer, "CIRCUITPYTHON1", 15);
+//             }
+//             // First 16 bytes (0-15) are ID. Little endian!
+//             page_buffer[16] = current_calibration & 0xff;
+//             page_buffer[17] = current_calibration >> 8;
+//             do
+//             {
+//                 error_code = nvm_erase_row(INTERNAL_CIRCUITPY_CONFIG_START_ADDR);
+//             } while (error_code == STATUS_BUSY);
+//             for (int i = 0; i < NVMCTRL_ROW_PAGES; i++) {
+//                 do
+//                 {
+//                     error_code = nvm_write_buffer(INTERNAL_CIRCUITPY_CONFIG_START_ADDR + i * NVMCTRL_PAGE_SIZE,
+//                                                   page_buffer + i * NVMCTRL_PAGE_SIZE,
+//                                                   NVMCTRL_PAGE_SIZE);
+//                 } while (error_code == STATUS_BUSY);
+//             }
+//         }
+//     }
+// #endif
 }
 
 bool maybe_run(const char* filename, pyexec_result_t* exec_result) {
@@ -461,74 +460,56 @@ __attribute__((__aligned__(TRACE_BUFFER_SIZE_BYTES))) uint32_t mtb[TRACE_BUFFER_
 #endif
 
 // Serial number as hex characters.
-char serial_number[USB_DEVICE_GET_SERIAL_NAME_LENGTH];
-void load_serial_number(void) {
-    char nibble_to_hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A',
-        'B', 'C', 'D', 'E', 'F'};
-    uint32_t* addresses[4] = {(uint32_t *) 0x0080A00C, (uint32_t *) 0x0080A040,
-                              (uint32_t *) 0x0080A044, (uint32_t *) 0x0080A048};
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 8; j++) {
-            uint8_t nibble = (*(addresses[i]) >> j * 4) & 0xf;
-            serial_number[i * 8 + j] = nibble_to_hex[nibble];
-        }
-    }
-}
+// char serial_number[USB_DEVICE_GET_SERIAL_NAME_LENGTH];
+// void load_serial_number(void) {
+//     char nibble_to_hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A',
+//         'B', 'C', 'D', 'E', 'F'};
+//     uint32_t* addresses[4] = {(uint32_t *) 0x0080A00C, (uint32_t *) 0x0080A040,
+//                               (uint32_t *) 0x0080A044, (uint32_t *) 0x0080A048};
+//     for (int i = 0; i < 4; i++) {
+//         for (int j = 0; j < 8; j++) {
+//             uint8_t nibble = (*(addresses[i]) >> j * 4) & 0xf;
+//             serial_number[i * 8 + j] = nibble_to_hex[nibble];
+//         }
+//     }
+// }
 
 // Provided by the linker;
 extern uint32_t _ezero;
 
-safe_mode_t samd21_init(void) {
+void samd_init(void) {
 #ifdef ENABLE_MICRO_TRACE_BUFFER
     REG_MTB_POSITION = ((uint32_t) (mtb - REG_MTB_BASE)) & 0xFFFFFFF8;
     REG_MTB_FLOW = (((uint32_t) mtb - REG_MTB_BASE) + TRACE_BUFFER_SIZE_BYTES) & 0xFFFFFFF8;
     REG_MTB_MASTER = 0x80000000 + (TRACE_BUFFER_MAGNITUDE_PACKETS - 1);
 #endif
 
-// On power on start or external reset, set _ezero to the canary word. If it
-// gets killed, we boot in safe mod. _ezero is the boundary between statically
-// allocated memory including the fixed MicroPython heap and the stack. If either
-// misbehaves, the canary will not be in tact after soft reset.
-#ifdef CIRCUITPY_CANARY_WORD
-    if (PM->RCAUSE.bit.POR == 1 || PM->RCAUSE.bit.EXT == 1) {
-        _ezero = CIRCUITPY_CANARY_WORD;
-    } else if (PM->RCAUSE.bit.SYST == 1) {
-        // If we're starting from a system reset we're likely coming from the
-        // bootloader or hard fault handler. If we're coming from the handler
-        // the canary will be CIRCUITPY_SAFE_RESTART_WORD and we don't want to
-        // revive the canary so that a second hard fault won't restart. Resets
-        // from anywhere else are ok.
-        if (_ezero == CIRCUITPY_SAFE_RESTART_WORD) {
-            _ezero = ~CIRCUITPY_CANARY_WORD;
-        } else {
-            _ezero = CIRCUITPY_CANARY_WORD;
-        }
-    }
-#endif
+// // On power on start or external reset, set _ezero to the canary word. If it
+// // gets killed, we boot in safe mod. _ezero is the boundary between statically
+// // allocated memory including the fixed MicroPython heap and the stack. If either
+// // misbehaves, the canary will not be in tact after soft reset.
+// #ifdef CIRCUITPY_CANARY_WORD
+//     if (PM->RCAUSE.bit.POR == 1 || PM->RCAUSE.bit.EXT == 1) {
+//         _ezero = CIRCUITPY_CANARY_WORD;
+//     } else if (PM->RCAUSE.bit.SYST == 1) {
+//         // If we're starting from a system reset we're likely coming from the
+//         // bootloader or hard fault handler. If we're coming from the handler
+//         // the canary will be CIRCUITPY_SAFE_RESTART_WORD and we don't want to
+//         // revive the canary so that a second hard fault won't restart. Resets
+//         // from anywhere else are ok.
+//         if (_ezero == CIRCUITPY_SAFE_RESTART_WORD) {
+//             _ezero = ~CIRCUITPY_CANARY_WORD;
+//         } else {
+//             _ezero = CIRCUITPY_CANARY_WORD;
+//         }
+//     }
+// #endif
+//
+//     load_serial_number();
 
-    load_serial_number();
+    init_mcu();
 
-    irq_initialize_vectors();
-    cpu_irq_enable();
-
-    // Initialize the sleep manager
-    sleepmgr_init();
-
-    uint16_t dfll_fine_calibration = 0x1ff;
-#ifdef CALIBRATE_CRYSTALLESS
-    // This is stored in an NVM page after the text and data storage but before
-    // the optional file system. The first 16 bytes are the identifier for the
-    // section.
-    if (strcmp((char*) INTERNAL_CIRCUITPY_CONFIG_START_ADDR, "CIRCUITPYTHON1") == 0) {
-        dfll_fine_calibration = ((uint16_t *) INTERNAL_CIRCUITPY_CONFIG_START_ADDR)[8];
-    }
-#endif
-
-    // We pass in the DFLL fine calibration because we can't change it once the
-    // clock is going.
-    system_init(dfll_fine_calibration);
-
-    delay_init();
+    delay_init(SysTick);
 
     board_init();
 
@@ -546,13 +527,12 @@ safe_mode_t samd21_init(void) {
     rgb_led_status_init();
 
     // Init the nvm controller.
-    struct nvm_config config_nvm;
-    nvm_get_config_defaults(&config_nvm);
-    config_nvm.manual_page_write = false;
-    nvm_set_config(&config_nvm);
+    // struct nvm_config config_nvm;
+    // nvm_get_config_defaults(&config_nvm);
+    // config_nvm.manual_page_write = false;
+    // nvm_set_config(&config_nvm);
 
-    init_shared_dma();
-
+    // init_shared_dma();
     #ifdef CIRCUITPY_CANARY_WORD
     // Run in safe mode if the canary is corrupt.
     if (_ezero != CIRCUITPY_CANARY_WORD) {
@@ -576,7 +556,7 @@ extern uint32_t _ebss;
 
 int main(void) {
     // initialise the cpu and peripherals
-    safe_mode_t safe_mode = samd21_init();
+    safe_mode_t safe_mode = samd_init();
 
     // Stack limit should be less than real stack size, so we have a chance
     // to recover from limit hit.  (Limit is measured in bytes.)
@@ -593,7 +573,7 @@ int main(void) {
     init_flash_fs();
 
     // Reset everything and prep MicroPython to run boot.py.
-    reset_samd21();
+    reset_samd();
     reset_board();
     reset_mp();
 
@@ -634,15 +614,40 @@ int main(void) {
 
         // Reset to remove any state that boot.py setup. It should only be used to
         // change internal state thats not in the heap.
-        reset_samd21();
+        reset_samd();
         reset_mp();
     }
 
-    usb_hid_init();
+    //usb_hid_init();
 
     // Start USB after getting everything going.
-    #ifdef USB_REPL
-        udc_start();
+    #ifdef SAMD21
+    _pm_enable_bus_clock(PM_BUS_APBB, USB);
+    _pm_enable_bus_clock(PM_BUS_AHB, USB);
+    _gclk_enable_channel(USB_GCLK_ID, CONF_GCLK_USB_SRC);
+    #endif
+
+    #ifdef SAMD51
+    hri_gclk_write_PCHCTRL_reg(GCLK, USB_GCLK_ID, CONF_GCLK_USB_SRC | GCLK_PCHCTRL_CHEN);
+    hri_mclk_set_AHBMASK_USB_bit(MCLK);
+    hri_mclk_set_APBBMASK_USB_bit(MCLK);
+    #endif
+
+    usb_d_init();
+
+    gpio_set_pin_direction(PIN_PA24, GPIO_DIRECTION_OUT);
+    gpio_set_pin_level(PIN_PA24, false);
+    gpio_set_pin_pull_mode(PIN_PA24, GPIO_PULL_OFF);
+    gpio_set_pin_direction(PIN_PA25, GPIO_DIRECTION_OUT);
+    gpio_set_pin_level(PIN_PA25, false);
+    gpio_set_pin_pull_mode(PIN_PA25, GPIO_PULL_OFF);
+    #ifdef SAMD21
+    gpio_set_pin_function(PIN_PA24, PINMUX_PA24G_USB_DM);
+    gpio_set_pin_function(PIN_PA25, PINMUX_PA25G_USB_DP);
+    #endif
+    #ifdef SAMD51
+    gpio_set_pin_function(PIN_PA24, PINMUX_PA24H_USB_DM);
+    gpio_set_pin_function(PIN_PA25, PINMUX_PA25H_USB_DP);
     #endif
 
     // Boot script is finished, so now go into REPL/main mode.
@@ -673,7 +678,7 @@ int main(void) {
             }
             first_run = false;
             skip_repl = start_mp(safe_mode);
-            reset_samd21();
+            reset_samd();
             reset_board();
             reset_mp();
         } else if (exit_code != 0) {
