@@ -64,23 +64,21 @@
 #define NO_EXTINT \
     .has_extint = false,
 
-#define ADC_INPUT(input) \
-    input
+#define ADC_INPUT(input) (input)
 
-#define NO_ADC \
-    0xff
+#define NO_ADC 0xff
 
 // This macro is used to simplify pin definition in boards/<board>/pins.c
-#define PIN(p_name, p_adc0, p_adc1, p_extint, p_touch,
+#define PIN(p_name, p_extint, p_adc0, p_adc1, p_touch, \
             p_primary_sercom, p_secondary_sercom, \
-            p_primary_timer, p_secondary_timer, p_tertiary_timer, ) \
+            p_primary_timer, p_secondary_timer, p_tertiary_timer) \
 const mcu_pin_obj_t pin_## p_name = { \
     { &mcu_pin_type }, \
-    .name = MP_QSTR_ ## p_name, \
+    .name = MP_QSTR_## p_name, \
     .pin = (PIN_## p_name), \
     p_extint \
-    .adc_input = {p_adc0, p_adc1}, \
     p_touch \
+    .adc_input = {p_adc0, p_adc1}, \
     .timer = {p_primary_timer, p_secondary_timer, p_tertiary_timer}, \
     .sercom = {p_primary_sercom, p_secondary_sercom}, \
 }
@@ -262,7 +260,7 @@ PIN(PB09, EXTINT_CHANNEL(9), ADC_INPUT(3), ADC_INPUT(1), TOUCH(2),
 #ifdef PIN_PA04
 PIN(PA04, EXTINT_CHANNEL(4), ADC_INPUT(4), NO_ADC, TOUCH(3),
     NO_SERCOM,
-    SERCOM(SERCOM0, 0)
+    SERCOM(SERCOM0, 0),
     TC(TC0, 0),
     NO_TIMER,
     NO_TIMER);
@@ -270,7 +268,7 @@ PIN(PA04, EXTINT_CHANNEL(4), ADC_INPUT(4), NO_ADC, TOUCH(3),
 #ifdef PIN_PA05
 PIN(PA05, EXTINT_CHANNEL(5), ADC_INPUT(5), NO_ADC, NO_TOUCH,
     NO_SERCOM,
-    SERCOM(SERCOM0, 1)
+    SERCOM(SERCOM0, 1),
     TC(TC0, 1),
     NO_TIMER,
     NO_TIMER);
@@ -278,7 +276,7 @@ PIN(PA05, EXTINT_CHANNEL(5), ADC_INPUT(5), NO_ADC, NO_TOUCH,
 #ifdef PIN_PA06
 PIN(PA06, EXTINT_CHANNEL(6), ADC_INPUT(6), NO_ADC, TOUCH(4),
     NO_SERCOM,
-    SERCOM(SERCOM0, 2)
+    SERCOM(SERCOM0, 2),
     TC(TC1, 0),
     NO_TIMER,
     NO_TIMER);
@@ -355,7 +353,7 @@ PIN(PA09, EXTINT_CHANNEL(9), ADC_INPUT(9), ADC_INPUT(3), TOUCH(7),
     SERCOM(SERCOM2, 0),
     TC(TC0, 1),
     TCC(TCC0, 1),
-    TCC(TCC1, 5),);
+    TCC(TCC1, 5));
 #endif
 #ifdef PIN_PA10
 PIN(PA10, EXTINT_CHANNEL(10), ADC_INPUT(10), NO_ADC, TOUCH(8),
@@ -911,7 +909,7 @@ PIN(PB21, EXTINT_CHANNEL(5), NO_ADC, NO_ADC, NO_TOUCH,
 #ifdef PIN_PA20
 PIN(PA20, EXTINT_CHANNEL(4), NO_ADC, NO_ADC, TOUCH(14),
     SERCOM(SERCOM5, 2),
-    SERCOM(SERCOM3, 2)
+    SERCOM(SERCOM3, 2),
     #ifdef TC7
     TC(TC7, 0),
     #else
@@ -923,7 +921,7 @@ PIN(PA20, EXTINT_CHANNEL(4), NO_ADC, NO_ADC, TOUCH(14),
 #ifdef PIN_PA21
 PIN(PA21, EXTINT_CHANNEL(5), NO_ADC, NO_ADC, TOUCH(15),
     SERCOM(SERCOM5, 3),
-    SERCOM(SERCOM3, 3)
+    SERCOM(SERCOM3, 3),
     #ifdef TC7
     TC(TC7, 1),
     #else
@@ -935,7 +933,7 @@ PIN(PA21, EXTINT_CHANNEL(5), NO_ADC, NO_ADC, TOUCH(15),
 #ifdef PIN_PA22
 PIN(PA22, EXTINT_CHANNEL(6), NO_ADC, NO_ADC, TOUCH(16),
     SERCOM(SERCOM3, 0),
-    SERCOM(SERCOM5, 1)
+    SERCOM(SERCOM5, 1),
     #ifdef TC4
     TC(TC4, 0),
     #else
@@ -947,7 +945,7 @@ PIN(PA22, EXTINT_CHANNEL(6), NO_ADC, NO_ADC, TOUCH(16),
 #ifdef PIN_PA23
 PIN(PA23, EXTINT_CHANNEL(7), NO_ADC, NO_ADC, TOUCH(17),
     SERCOM(SERCOM3, 1),
-    SERCOM(SERCOM5, 0)
+    SERCOM(SERCOM5, 0),
     #ifdef TC4
     TC(TC4, 1),
     #else
@@ -959,7 +957,7 @@ PIN(PA23, EXTINT_CHANNEL(7), NO_ADC, NO_ADC, TOUCH(17),
 #ifdef PIN_PA24
 PIN(PA24, EXTINT_CHANNEL(8), NO_ADC, NO_ADC, NO_TOUCH,
     SERCOM(SERCOM3, 2),
-    SERCOM(SERCOM5, 2)
+    SERCOM(SERCOM5, 2),
     #ifdef TC5
     TC(TC5, 0),
     #else
@@ -971,7 +969,7 @@ PIN(PA24, EXTINT_CHANNEL(8), NO_ADC, NO_ADC, NO_TOUCH,
 #ifdef PIN_PA25
 PIN(PA25, EXTINT_CHANNEL(9), NO_ADC, NO_ADC, NO_TOUCH,
     SERCOM(SERCOM3, 3),
-    SERCOM(SERCOM5, 3)
+    SERCOM(SERCOM5, 3),
     #ifdef TC5
     TC(TC5, 1),
     #else

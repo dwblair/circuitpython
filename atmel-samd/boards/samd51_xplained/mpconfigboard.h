@@ -2,6 +2,7 @@
 #define MICROPY_HW_MCU_NAME "samd51p20"
 
 #define CIRCUITPY_MCU_FAMILY samd51
+#define SAMD51
 
 #define MICROPY_HW_LED_TX   PIN_PA27
 #define MICROPY_HW_LED_RX   PIN_PA31

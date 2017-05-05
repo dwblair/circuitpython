@@ -95,6 +95,7 @@ extern "C" {
  * \param[in] file File name
  * \param[in] line Line number
  */
+#undef assert
 void assert(const bool condition, const char *const file, const int line);
 
 #ifdef __cplusplus

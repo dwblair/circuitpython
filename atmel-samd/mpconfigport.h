@@ -138,12 +138,10 @@ typedef long mp_off_t;
 
 #ifdef SAMD21
 #define CIRCUITPY_MCU_FAMILY samd21
-#include "samd21_pins.h"
 #endif
 
 #ifdef SAMD51
 #define CIRCUITPY_MCU_FAMILY samd51
-#include "samd51_pins.h"
 #endif
 
 // extra built in modules to add to the list of known ones

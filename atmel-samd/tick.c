@@ -26,7 +26,9 @@ void timer_tick(const struct timer_task *const timer_task) {
 }
 
 void tick_init() {
+    #ifdef SAMD21
     _pm_enable_bus_clock(PM_BUS_APBC, TC5);
+    #endif
     _gclk_enable_channel(TC5_GCLK_ID, CONF_GCLK_TC5_SRC);
 
     timer_init(&ms_timer, TC5, _tc_get_timer());

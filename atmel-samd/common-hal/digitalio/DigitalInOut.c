@@ -91,15 +91,13 @@ void common_hal_digitalio_digitalinout_set_value(
 bool common_hal_digitalio_digitalinout_get_value(
         digitalio_digitalinout_obj_t* self) {
     uint32_t pin = self->pin->pin;
-    PortGroup *const port_base = port_get_group_from_gpio_pin(pin);
-    uint32_t pin_mask  = (1UL << (pin % 32));
     if (!self->output) {
         return gpio_get_pin_level(self->pin->pin);
     } else {
-        if (self->open_drain && (port_base->DIR.reg & pin_mask) == 0) {
+        if (self->open_drain && hri_port_get_DIR_reg(PORT, (enum gpio_port)GPIO_PORT(pin), 1U << pin) == 0) {
             return true;
         } else {
-            return (port_base->OUT.reg & pin_mask);
+            return hri_port_get_OUT_reg(PORT, (enum gpio_port)GPIO_PORT(pin), 1U << pin);
         }
     }
 }
@@ -126,39 +124,32 @@ enum digitalio_drive_mode_t common_hal_digitalio_digitalinout_get_drive_mode(
 }
 
 void common_hal_digitalio_digitalinout_set_pull(
-        digitalio_digitalinout_obj_t* self, enum digitalio_pull_t pull) {
-    enum port_pin_pull asf_pull = PORT_PIN_PULL_NONE;
+        digitalio_digitalinout_obj_t* self, enum digitalinout_pull_t pull) {
+    enum gpio_pull_mode asf_pull = GPIO_PULL_OFF;
     switch (pull) {
         case PULL_UP:
-            asf_pull = PORT_PIN_PULL_UP;
+            asf_pull = GPIO_PULL_UP;
             break;
         case PULL_DOWN:
-            asf_pull = PORT_PIN_PULL_DOWN;
+            asf_pull = GPIO_PULL_DOWN;
             break;
         case PULL_NONE:
         default:
             break;
     }
-    struct port_config pin_conf;
-    port_get_config_defaults(&pin_conf);
-
-    pin_conf.direction  = PORT_PIN_DIR_INPUT;
-    pin_conf.input_pull = asf_pull;
-    port_pin_set_config(self->pin->pin, &pin_conf);
+    gpio_set_pin_pull_mode(self->pin->pin, asf_pull);
 }
 
 enum digitalio_pull_t common_hal_digitalio_digitalinout_get_pull(
         digitalio_digitalinout_obj_t* self) {
     uint32_t pin = self->pin->pin;
-    PortGroup *const port_base = port_get_group_from_gpio_pin(pin);
-    uint32_t pin_mask  = (1UL << (pin % 32));
     if (self->output) {
         mp_raise_AttributeError("Cannot get pull while in output mode");
         return PULL_NONE;
     } else {
-        if (port_base->PINCFG[pin % 32].bit.PULLEN == 0) {
+        if (hri_port_get_PINCFG_PULLEN_bit(PORT, (enum gpio_port)GPIO_PORT(pin), pin) == 0) {
             return PULL_NONE;
-        } if ((port_base->OUT.reg & pin_mask) > 0) {
+        } if (hri_port_get_OUT_reg(PORT, (enum gpio_port)GPIO_PORT(pin), 1U << pin) > 0) {
             return PULL_UP;
         } else {
             return PULL_DOWN;
