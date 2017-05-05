@@ -3,12 +3,10 @@
 #define MICROPY_HW_BOARD_NAME "Adafruit Metro M0 Express"
 #define MICROPY_HW_MCU_NAME "samd21g18"
 
-#define CIRCUITPY_MCU_FAMILY samd21
-
 #define MICROPY_HW_LED_TX   PIN_PA27
 #define MICROPY_HW_LED_RX   PIN_PA31
 
-#define MICROPY_HW_NEOPIXEL (&pin_PA30)
+//#define MICROPY_HW_NEOPIXEL (&pin_PA30)
 
 // Salae reads 12mhz which is the limit even though we set it to the safer 8mhz.
 #define SPI_FLASH_BAUDRATE  (8000000)

@@ -24,25 +24,10 @@
  * THE SOFTWARE.
  */
 
-#include "boards/board.h"
-#include "asf/sam0/drivers/port/port.h"
-#include "mpconfigboard.h"
-#include "hal/include/hal_gpio.h"
+#ifndef __MICROPY_INCLUDED_ATMEL_SAMD_USB_H__
+#define __MICROPY_INCLUDED_ATMEL_SAMD_USB_H__
 
-void board_init(void)
-{
-    gpio_set_pin_function(MICROPY_HW_LED_TX, GPIO_PIN_FUNCTION_OFF);
-    gpio_set_pin_direction(MICROPY_HW_LED_TX, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(MICROPY_HW_LED_TX, true);
+void init_usb(void);
+void usb_write(const uint8_t* buffer, uint32_t len);
 
-    gpio_set_pin_function(MICROPY_HW_LED_RX, GPIO_PIN_FUNCTION_OFF);
-    gpio_set_pin_direction(MICROPY_HW_LED_RX, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(MICROPY_HW_LED_RX, true);
-}
-
-bool board_requests_safe_mode(void) {
-    return false;
-}
-
-void reset_board(void) {
-}
+#endif  // __MICROPY_INCLUDED_ATMEL_SAMD_USB_H__

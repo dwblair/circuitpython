@@ -134,6 +134,17 @@ typedef long mp_off_t;
 
 // board specific definitions
 #include "mpconfigboard.h"
+#include "include/sam.h"
+
+#ifdef SAMD21
+#define CIRCUITPY_MCU_FAMILY samd21
+#include "samd21_pins.h"
+#endif
+
+#ifdef SAMD51
+#define CIRCUITPY_MCU_FAMILY samd51
+#include "samd51_pins.h"
+#endif
 
 // extra built in modules to add to the list of known ones
 extern const struct _mp_obj_module_t microcontroller_module;
@@ -198,10 +209,6 @@ extern const struct _mp_obj_module_t usb_hid_module;
 #define MICROPY_PORT_BUILTIN_DEBUG_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_uheap),(mp_obj_t)&uheap_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_ustack),(mp_obj_t)&ustack_module }
-
-#ifndef MICROPY_PIN_DEFS_PORT_H
-#define MICROPY_PIN_DEFS_PORT_H "pins.h"
-#endif
 
 // We need to provide a declaration/definition of alloca()
 #include <alloca.h>

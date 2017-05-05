@@ -26,7 +26,7 @@
 
 #include "shared-bindings/microcontroller/Pin.h"
 
-#include "asf/sam0/drivers/port/port.h"
+#include "hal/include/hal_gpio.h"
 
 #include "rgb_led_status.h"
 #ifdef SAMD21
@@ -109,26 +109,29 @@ void reset_pin(uint8_t pin) {
     }
     #endif
 
-    struct system_pinmux_config config;
-    system_pinmux_get_config_defaults(&config);
-    if (pin == PIN_PA30 || pin == PIN_PA31) {
-        config.mux_position = 0x6;
-    } else {
-        config.powersave = true;
-    }
-    system_pinmux_pin_set_config(pin, &config);
 
-    #ifdef SPEAKER_ENABLE_PIN
-    if (pin == SPEAKER_ENABLE_PIN->pin) {
-        speaker_enable_in_use = false;
-        struct port_config pin_conf;
-        port_get_config_defaults(&pin_conf);
-
-        pin_conf.direction  = PORT_PIN_DIR_OUTPUT;
-        port_pin_set_config(SPEAKER_ENABLE_PIN->pin, &pin_conf);
-        port_pin_set_output_level(SPEAKER_ENABLE_PIN->pin, false);
-    }
-    #endif
+    // struct system_pinmux_config config;
+    // system_pinmux_get_config_defaults(&config);
+    // if (pin == PIN_PA30 || pin == PIN_PA31) {
+    //     config.mux_position = 0x6;
+    // } else {
+    //     config.powersave = true;
+    // }
+    // system_pinmux_pin_set_config(pin, &config);
+    //
+    // #ifdef SPEAKER_ENABLE_PIN
+    // if (pin == SPEAKER_ENABLE_PIN->pin) {
+    //     speaker_enable_in_use = false;
+    //     struct port_config pin_conf;
+    //     port_get_config_defaults(&pin_conf);
+    //
+    //     pin_conf.direction  = PORT_PIN_DIR_OUTPUT;
+    //     port_pin_set_config(SPEAKER_ENABLE_PIN->pin, &pin_conf);
+    //     port_pin_set_output_level(SPEAKER_ENABLE_PIN->pin, false);
+    // }
+    // #endif
+    gpio_set_pin_function(pin, GPIO_PIN_FUNCTION_OFF);
+    gpio_set_pin_direction(pin, GPIO_DIRECTION_OFF);
 }
 
 void claim_pin(const mcu_pin_obj_t* pin) {
@@ -174,8 +177,8 @@ bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t* pin) {
     }
     #endif
 
-    PortGroup *const port = system_pinmux_get_group_from_gpio_pin(pin->pin);
-    uint32_t pin_index = (pin->pin);
+    PortGroup *const port = &PORT->Group[(enum gpio_port)GPIO_PORT(pin->pin)];
+    uint8_t pin_index = GPIO_PIN(pin->pin);
     volatile PORT_PINCFG_Type *state = &port->PINCFG[pin_index];
     volatile PORT_PMUX_Type *pmux = &port->PMUX[pin_index / 2];
 

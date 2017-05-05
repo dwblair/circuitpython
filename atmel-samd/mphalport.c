@@ -6,30 +6,17 @@
 #include "py/mphal.h"
 #include "py/mpstate.h"
 #include "py/smallint.h"
+#include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/time/__init__.h"
 
 #include "hal/include/hal_atomic.h"
+#include "hal/include/hal_delay.h"
+#include "hal/include/hal_gpio.h"
+#include "hal/include/hal_sleep.h"
 
 #include "mpconfigboard.h"
 #include "mphalport.h"
-
-// Store received characters on our own so that we can filter control characters
-// and act immediately on CTRL-C for example.
-// This is adapted from asf/thirdparty/wireless/addons/sio2host
-
-// Receive buffer
-static uint8_t usb_rx_buf[USB_RX_BUF_SIZE];
-
-// Receive buffer head
-static volatile uint8_t usb_rx_buf_head;
-
-// Receive buffer tail
-static volatile uint8_t usb_rx_buf_tail;
-
-// Number of bytes in receive buffer
-volatile uint8_t usb_rx_count;
-
-volatile bool mp_cdc_enabled = false;
+#include "usb.h"
 
 extern struct usart_module usart_instance;
 
@@ -66,6 +53,7 @@ void usb_rts_notify(uint8_t port, bool set) {
     return;
 }
 
+<<<<<<< HEAD
 void usb_coding_notify(uint8_t port, usb_cdc_line_coding_t* coding) {
     reset_on_disconnect = coding->dwDTERate == 1200;
 }
@@ -145,46 +133,40 @@ int receive_usb(void) {
     return data;
 }
 
+=======
+>>>>>>> more work
 int mp_hal_stdin_rx_chr(void) {
     for (;;) {
         #ifdef MICROPY_VM_HOOK_LOOP
             MICROPY_VM_HOOK_LOOP
         #endif
+<<<<<<< HEAD
         #ifdef USB_REPL
         if (reload_next_character) {
+=======
+        if (reset_next_character) {
+>>>>>>> more work
             return CHAR_CTRL_D;
         }
-        if (usb_rx_count > 0) {
-            #ifdef MICROPY_HW_LED_RX
-            port_pin_toggle_output_level(MICROPY_HW_LED_RX);
-            #endif
-            return receive_usb();
-        }
-        #endif
-        #ifdef UART_REPL
-        uint16_t temp;
-        if (usart_read_wait(&usart_instance, &temp) == STATUS_OK) {
-            #ifdef MICROPY_HW_LED_RX
-            port_pin_toggle_output_level(MICROPY_HW_LED_RX);
-            #endif
-            return temp;
-        }
-        #endif
-        // TODO(tannewt): Switch to callback/interrupt based UART so it can work
-        // with the sleepmgr.
-        sleepmgr_enter_sleep();
+        // if (usb_rx_count > 0) {
+        //     #ifdef MICROPY_HW_LED_RX
+        //     port_pin_toggle_output_level(MICROPY_HW_LED_RX);
+        //     #endif
+        //     return receive_usb();
+        // }
+
+        sleep(3);
     }
 }
 
 void mp_hal_stdout_tx_strn(const char *str, size_t len) {
     #ifdef MICROPY_HW_LED_TX
-    port_pin_toggle_output_level(MICROPY_HW_LED_TX);
+    gpio_toggle_pin_level(MICROPY_HW_LED_TX);
     #endif
 
-    #ifdef UART_REPL
-    usart_write_buffer_wait(&usart_instance, (uint8_t*) str, len);
-    #endif
+    usb_write((const uint8_t*) str, len);
 
+<<<<<<< HEAD
     #ifdef CIRCUITPY_BOOT_OUTPUT_FILE
     if (boot_output_file != NULL) {
         UINT bytes_written = 0;
@@ -217,6 +199,8 @@ void mp_hal_stdout_tx_strn(const char *str, size_t len) {
         }
     }
     #endif
+=======
+>>>>>>> more work
 }
 
 void mp_hal_delay_ms(mp_uint_t delay) {
@@ -239,18 +223,10 @@ void mp_hal_delay_us(mp_uint_t delay) {
     delay_us(delay);
 }
 
-// Interrupt flags that will be saved and restored during disable/Enable
-// interrupt functions below.
-static volatile hal_atomic_t flags;
-
 void mp_hal_disable_all_interrupts(void) {
-    // Disable all interrupt sources for timing critical sections.
-    // Disable ASF-based interrupts.
-    atomic_enter_critical(&flags);
+    common_hal_mcu_disable_interrupts();
 }
 
 void mp_hal_enable_all_interrupts(void) {
-    // Enable all interrupt sources after timing critical sections.
-    // Restore ASF-based interrupts.
-    atomic_leave_critical(&flags);
+    common_hal_mcu_enable_interrupts();
 }

@@ -25,7 +25,7 @@
  */
 
 #include "py/mphal.h"
-
+#include "hal/include/hal_atomic.h"
 #include "samd21_pins.h"
 
 void common_hal_mcu_delay_us(uint32_t delay) {
@@ -34,17 +34,13 @@ void common_hal_mcu_delay_us(uint32_t delay) {
 
 // Interrupt flags that will be saved and restored during disable/Enable
 // interrupt functions below.
-static irqflags_t irq_flags;
+volatile hal_atomic_t flags;
 void common_hal_mcu_disable_interrupts(void) {
-    // Disable all interrupt sources for timing critical sections.
-    // Disable ASF-based interrupts.
-    irq_flags = cpu_irq_save();
+    atomic_enter_critical(&flags);
 }
 
 void common_hal_mcu_enable_interrupts(void) {
-    // Enable all interrupt sources after timing critical sections.
-    // Restore ASF-based interrupts.
-    cpu_irq_restore(irq_flags);
+    atomic_leave_critical(&flags);
 }
 
 // This maps MCU pin names to pin objects.

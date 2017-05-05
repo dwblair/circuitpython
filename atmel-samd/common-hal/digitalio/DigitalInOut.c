@@ -31,6 +31,8 @@
 #include "py/runtime.h"
 #include "py/mphal.h"
 
+#include "hal/include/hal_gpio.h"
+
 #include "common-hal/microcontroller/Pin.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
 
@@ -39,12 +41,8 @@ digitalinout_result_t common_hal_digitalio_digitalinout_construct(
     claim_pin(pin);
     self->pin = pin;
 
-    struct port_config pin_conf;
-    port_get_config_defaults(&pin_conf);
-
-    pin_conf.direction  = PORT_PIN_DIR_INPUT;
-    pin_conf.input_pull = PORT_PIN_PULL_NONE;
-    port_pin_set_config(self->pin->pin, &pin_conf);
+    gpio_set_pin_pull_mode(pin->pin, GPIO_PULL_OFF);
+    gpio_set_pin_direction(pin->pin, GPIO_DIRECTION_IN);
     return DIGITALINOUT_OK;
 }
 
@@ -61,13 +59,9 @@ void common_hal_digitalio_digitalinout_switch_to_input(
 
 void common_hal_digitalio_digitalinout_switch_to_output(
         digitalio_digitalinout_obj_t* self, bool value,
-        enum digitalio_drive_mode_t drive_mode) {
-    struct port_config pin_conf;
-    port_get_config_defaults(&pin_conf);
-
-    pin_conf.direction  = PORT_PIN_DIR_INPUT;
-    pin_conf.input_pull = PORT_PIN_PULL_NONE;
-    port_pin_set_config(self->pin->pin, &pin_conf);
+        enum digitalinout_drive_mode_t drive_mode) {
+    gpio_set_pin_pull_mode(self->pin->pin, GPIO_PULL_OFF);
+    gpio_set_pin_direction(self->pin->pin, GPIO_DIRECTION_IN);
 
     self->output = true;
     self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
@@ -81,21 +75,16 @@ enum digitalio_direction_t common_hal_digitalio_digitalinout_get_direction(
 
 void common_hal_digitalio_digitalinout_set_value(
         digitalio_digitalinout_obj_t* self, bool value) {
-    uint32_t pin = self->pin->pin;
-    PortGroup *const port_base = port_get_group_from_gpio_pin(pin);
-    uint32_t pin_mask  = (1UL << (pin % 32));
-
-    /* Set the pin to high or low atomically based on the requested level */
     if (value) {
         if (self->open_drain) {
-            port_base->DIRCLR.reg = pin_mask;
+            gpio_set_pin_direction(self->pin->pin, GPIO_DIRECTION_IN);
         } else {
-            port_base->DIRSET.reg = pin_mask;
-            port_base->OUTSET.reg = pin_mask;
+            gpio_set_pin_level(self->pin->pin, true);
+            gpio_set_pin_direction(self->pin->pin, GPIO_DIRECTION_OUT);
         }
     } else {
-        port_base->DIRSET.reg = pin_mask;
-        port_base->OUTCLR.reg = pin_mask;
+        gpio_set_pin_level(self->pin->pin, false);
+        gpio_set_pin_direction(self->pin->pin, GPIO_DIRECTION_OUT);
     }
 }
 
@@ -105,7 +94,7 @@ bool common_hal_digitalio_digitalinout_get_value(
     PortGroup *const port_base = port_get_group_from_gpio_pin(pin);
     uint32_t pin_mask  = (1UL << (pin % 32));
     if (!self->output) {
-        return (port_base->IN.reg & pin_mask);
+        return gpio_get_pin_level(self->pin->pin);
     } else {
         if (self->open_drain && (port_base->DIR.reg & pin_mask) == 0) {
             return true;

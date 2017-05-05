@@ -27,8 +27,6 @@
 #ifndef __MICROPY_INCLUDED_ATMEL_SAMD_SHARED_DMA_H__
 #define __MICROPY_INCLUDED_ATMEL_SAMD_SHARED_DMA_H__
 
-#include "asf/sam0/drivers/dma/dma.h"
-
 extern struct dma_resource audio_dma;
 extern struct dma_resource general_dma_tx;
 extern struct dma_resource general_dma_rx;

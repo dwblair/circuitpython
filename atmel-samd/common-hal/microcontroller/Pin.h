@@ -29,6 +29,10 @@
 
 #include "py/obj.h"
 
+#include "mpconfigport.h"
+
+#include "include/component/sercom.h"
+
 typedef struct {
     Sercom *const sercom;
     uint8_t pad;
@@ -52,7 +56,7 @@ typedef struct {
     bool has_extint:1;
     uint8_t extint_channel:7;
     bool has_adc:1;
-    enum adc_positive_input adc_input:7;
+    uint8_t adc_input:7;
     bool has_touch:1;
     uint8_t touch_y_line:7; // 0 - 15. Assumed to be Y channel.
     pin_timer_t primary_timer;
