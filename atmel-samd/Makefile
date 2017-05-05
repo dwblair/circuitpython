@@ -153,8 +153,8 @@ SRC_C = \
 	tick.c \
 	usb.c \
 	bindings/samd/__init__.c \
-	asf4/$(CHIP_FAMILY)/gcc/gcc/startup_samd21.c \
-	asf4/$(CHIP_FAMILY)/gcc/system_samd21.c \
+	asf4/$(CHIP_FAMILY)/gcc/gcc/startup_$(CHIP_FAMILY).c \
+	asf4/$(CHIP_FAMILY)/gcc/system_$(CHIP_FAMILY).c \
 	boards/$(BOARD)/board.c \
 	boards/$(BOARD)/pins.c \
 	freetouch/adafruit_ptc.c \

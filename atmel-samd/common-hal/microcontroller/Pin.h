@@ -43,11 +43,19 @@ typedef struct {
         Tc *const tc;
         Tcc *const tcc;
     };
+    #ifdef SAMD21
     bool is_tc:1;
-    uint8_t channel:3;
+    #endif
     uint8_t wave_output:4;
 } pin_timer_t;
-
+#ifdef SAMD21
+#define NUM_TIMERS_PER_PIN 2
+#define NUM_ADC_PER_PIN 1
+#endif
+#ifdef SAMD51
+#define NUM_TIMERS_PER_PIN 3
+#define NUM_ADC_PER_PIN 2
+#endif
 #define NUM_SERCOMS_PER_PIN 2
 typedef struct {
     mp_obj_base_t base;
@@ -55,12 +63,10 @@ typedef struct {
     uint8_t pin;
     bool has_extint:1;
     uint8_t extint_channel:7;
-    bool has_adc:1;
-    uint8_t adc_input:7;
+    uint8_t adc_input[NUM_ADC_PER_PIN];
     bool has_touch:1;
     uint8_t touch_y_line:7; // 0 - 15. Assumed to be Y channel.
-    pin_timer_t primary_timer;
-    pin_timer_t secondary_timer;
+    pin_timer_t timer[NUM_TIMERS_PER_PIN];
     pin_sercom_t sercom[NUM_SERCOMS_PER_PIN];
 } mcu_pin_obj_t;
 
