@@ -3,7 +3,7 @@
 
 binaries:
     prebuilt_s3: adafruit-circuit-python
-    file_pattern: bin/{board}/adafruit-circuitpython-{board}-*-{short_sha}.bin
+    file_pattern: bin/{board}/adafruit-circuitpython-{board}-*-{short_sha}.{extension}
 
 circuitpython_tests:
     test_directories:
