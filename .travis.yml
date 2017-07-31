@@ -22,7 +22,7 @@ notifications:
     on_start: never     # options: [always|never|change] default: always
   webhooks:
     urls:
-      - https://mike-ci.ngrok.io/travis
+      - https://rosie-ci.ngrok.io/travis
     on_success: always
     on_failure: always
     on_start: always
