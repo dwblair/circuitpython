@@ -22,12 +22,12 @@ extern struct usart_module usart_instance;
 
 // Read by main to know when USB is connected.
 volatile bool mp_msc_enabled = false;
-bool mp_msc_enable() {
+bool mp_msc_enable(void) {
     mp_msc_enabled = true;
     return true;
 }
 
-void mp_msc_disable() {
+void mp_msc_disable(void) {
     mp_msc_enabled = false;
 }
 
@@ -53,10 +53,9 @@ void usb_rts_notify(uint8_t port, bool set) {
     return;
 }
 
-<<<<<<< HEAD
-void usb_coding_notify(uint8_t port, usb_cdc_line_coding_t* coding) {
-    reset_on_disconnect = coding->dwDTERate == 1200;
-}
+// void usb_coding_notify(uint8_t port, usb_cdc_line_coding_t* coding) {
+//     reset_on_disconnect = coding->dwDTERate == 1200;
+// }
 
 void usb_rx_notify(void) {
     irqflags_t flags;
@@ -133,19 +132,12 @@ int receive_usb(void) {
     return data;
 }
 
-=======
->>>>>>> more work
 int mp_hal_stdin_rx_chr(void) {
     for (;;) {
         #ifdef MICROPY_VM_HOOK_LOOP
             MICROPY_VM_HOOK_LOOP
         #endif
-<<<<<<< HEAD
-        #ifdef USB_REPL
-        if (reload_next_character) {
-=======
         if (reset_next_character) {
->>>>>>> more work
             return CHAR_CTRL_D;
         }
         // if (usb_rx_count > 0) {
@@ -166,41 +158,6 @@ void mp_hal_stdout_tx_strn(const char *str, size_t len) {
 
     usb_write((const uint8_t*) str, len);
 
-<<<<<<< HEAD
-    #ifdef CIRCUITPY_BOOT_OUTPUT_FILE
-    if (boot_output_file != NULL) {
-        UINT bytes_written = 0;
-        f_write(boot_output_file, str, len, &bytes_written);
-    }
-    #endif
-
-    #ifdef USB_REPL
-    // Always make sure there is enough room in the usb buffer for the outgoing
-    // string. If there isn't we risk getting caught in a loop within the usb
-    // code as it tries to send all the characters it can't buffer.
-    uint32_t start = 0;
-    uint64_t start_tick = common_hal_time_monotonic();
-    uint64_t duration = 0;
-    if (mp_cdc_enabled) {
-        while (start < len && duration < 10) {
-            uint8_t buffer_space = udi_cdc_get_free_tx_buffer();
-            uint8_t transmit = min(len - start, buffer_space);
-            if (transmit > 0) {
-                if (udi_cdc_write_buf(str + start, transmit) > 0) {
-                    // It didn't transmit successfully so give up.
-                    break;
-                }
-            }
-            start += transmit;
-            #ifdef MICROPY_VM_HOOK_LOOP
-                MICROPY_VM_HOOK_LOOP
-            #endif
-            duration = (common_hal_time_monotonic() - start_tick);
-        }
-    }
-    #endif
-=======
->>>>>>> more work
 }
 
 void mp_hal_delay_ms(mp_uint_t delay) {

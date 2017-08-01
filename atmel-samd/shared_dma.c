@@ -28,10 +28,6 @@
 #include "py/gc.h"
 #include "py/mpstate.h"
 
-#include "asf/sam0/drivers/events/events.h"
-#include "asf/sam0/drivers/system/interrupt/system_interrupt.h"
-#include "asf/sam0/drivers/tc/tc.h"
-
 #undef ENABLE
 
 // We allocate two DMA resources for the entire lifecycle of the board (not the

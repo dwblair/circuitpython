@@ -478,7 +478,7 @@ __attribute__((__aligned__(TRACE_BUFFER_SIZE_BYTES))) uint32_t mtb[TRACE_BUFFER_
 // Provided by the linker;
 extern uint32_t _ezero;
 
-void samd_init(void) {
+safe_mode_t samd_init(void) {
 #ifdef ENABLE_MICRO_TRACE_BUFFER
     REG_MTB_POSITION = ((uint32_t) (mtb - REG_MTB_BASE)) & 0xFFFFFFF8;
     REG_MTB_FLOW = (((uint32_t) mtb - REG_MTB_BASE) + TRACE_BUFFER_SIZE_BYTES) & 0xFFFFFFF8;
@@ -541,9 +541,9 @@ void samd_init(void) {
     }
     #endif
 
-    if (PM->RCAUSE.bit.BOD33 == 1 || PM->RCAUSE.bit.BOD12 == 1) {
-        return BROWNOUT;
-    }
+    // if (PM->RCAUSE.bit.BOD33 == 1 || PM->RCAUSE.bit.BOD12 == 1) {
+    //     return BROWNOUT;
+    // }
 
     if (board_requests_safe_mode()) {
         return USER_SAFE_MODE;
@@ -642,7 +642,7 @@ int main(void) {
             if (autoreload_on) {
                 autoreload_enable();
             }
-            reset_samd21();
+            reset_samd();
             reset_board();
             reset_mp();
         }

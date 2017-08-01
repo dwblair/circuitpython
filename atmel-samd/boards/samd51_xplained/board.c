@@ -1,5 +1,5 @@
 /*
- * This file is part of the Micro Python project, http://micropython.org/
+ * This file is part of the MicroPython project, http://micropython.org/
  *
  * The MIT License (MIT)
  *
@@ -23,11 +23,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "background.h"
 
-// #include "common-hal/audioio/AudioOut.h"
+#include "boards/board.h"
+#include "mpconfigboard.h"
 
-void run_background_tasks(void) {
-    // audioout_background();
-    // udi_msc_process_trans();
+void board_init(void) {
+}
+
+bool board_requests_safe_mode(void) {
+    return false;
+}
+
+void reset_board(void) {
 }

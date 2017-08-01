@@ -27,8 +27,6 @@
 #include "flash_api.h"
 #include "reset.h"
 
-#include "asf/sam0/utils/cmsis/samd21/include/samd21.h"
-
 // Copied from inc/uf2.h in https://github.com/Microsoft/uf2-samd21
 #define DBL_TAP_PTR ((volatile uint32_t *)(HMCRAMC0_ADDR + HMCRAMC0_SIZE - 4))
 #define DBL_TAP_MAGIC 0xf01669ef // Randomly selected, adjusted to have first and last bit set
